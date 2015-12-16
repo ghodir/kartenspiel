@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html ng-app="kartenspielApp">
+<head>
+	<title>Kartenspiel</title>
+	<meta charset="utf-8" />
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+	<link rel="stylesheet" href="bower_components/leaflet/dist/leaflet.css" />
+	<link rel="stylesheet" href="bower_components/angular-material/angular-material.min.css" />
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<style type="text/css">
+		
+		
+	</style>
+</head>
+<body ng-controller="BaseCtrl" layout="column">
+	<md-toolbar layout="row">
+		<md-button ng-click="toggleMenu()" aria-label="Toggle Menu">
+			<md-icon>menu</md-icon>
+		</md-button>
+		<h3>Kartenspiel</h3>
+	</md-toolbar>
+	<div flex layout="row">
+		<md-sidenav md-is-locked-open="false" class="md-whiteframe-z2" md-component-id="left">
+			<md-list>
+				<md-list-item>
+					Test
+				</md-list-item>
+			</md-list>
+		</md-sidenav>
+		<md-content flex id="content" layout="row">
+			<div ng-if="state.view == 'teams'" ng-controller="TeamSetupCtrl" flex="100" layout="column" layout-align="start center">
+				<div flex="80" layout="row">
+					<form flex="50" layout="column" novalidate ng-submit="onPlayerAdd(teams[0])">
+						<h2>Team 1</h2>
+						<md-list>
+							<md-list-item ng-repeat="player in teams[0]">
+								<md-input-container>
+									<label>Spieler {{ $index + 1 }}</label>
+									<input type="text" ng-model="player.name">
+								</md-input-container>
+							</md-list-item>
+							<md-list-item>
+								<md-input-container >
+									<label>Spieler {{ teams[0].length + 1 }}</label>
+									<input type="text" ng-model="teams[0].add" ng-blur="onPlayerAdd(teams[0])">
+								</md-input-container>
+							</md-list-item>
+							
+						</md-list>
+					</form>
+					<form flex="50" layout="column" novalidate ng-submit="onPlayerAdd(teams[1])">
+						<h2>Team 2</h2>
+						<md-list>
+							<md-list-item ng-repeat="player in teams[1]">
+								<md-input-container>
+									<label>Spieler {{ $index + 1 }}</label>
+									<input type="text" ng-model="player.name">
+								</md-input-container>
+							</md-list-item>
+							<md-list-item>
+								<md-input-container >
+									<label>Spieler {{ teams[1].length + 1 }}</label>
+									<input type="text" ng-model="teams[1].add" ng-blur="onPlayerAdd(teams[1])">
+								</md-input-container>
+							</md-list-item>
+							
+						</md-list>
+					</form>
+				</div>
+				<div flex="60" layout="row" layout-align="end start">
+					<md-button ng-click="submitTeams()">Starten</md-button>
+				</div>
+			</div>
+			<div ng-if="state.view == 'game'" ng-controller="GameCtrl" flex layout="row">
+				<div flex="80" style="position: relative">
+					<leaflet lf-center="center" width="100%" height="100%" style="position:absolute"></leaflet>
+				</div>
+				<div flex="20">
+					<h3 ng-repeat="team in teams">{{ team.name }}: <span>{{ team.points }}</span></h3>
+					<hr>
+					<div>Spieler: <span>{{ player.name }}</span> (<span>{{ team.name }}</span>)</div>
+					<div>Finde: <span>{{ city.name }}</span></div>
+				</div>
+			</div>
+		</md-content>
+	</div>
+	<div id="map"></div>
+
+	<script src="bower_components/jquery/dist/jquery.min.js"></script>
+	<script src="bower_components/leaflet/dist/leaflet.js"></script>
+	 <script src="./bower_components/angular/angular.js"></script>
+    <script src="./bower_components/angular-animate/angular-animate.js"></script>
+    <script src="./bower_components/angular-aria/angular-aria.js"></script>
+    <script src="./bower_components/angular-route/angular-route.js"></script>
+    <script type="text/javascript" src="./bower_components/angular-material/angular-material.js"></script>
+	<script src="./bower_components/angular-leaflet-directive/dist/angular-leaflet-directive.js"></script>
+	
+    <script type="text/javascript" src="./app.js"></script>
+	<script>
+
+	/*
+		var map = L.map('map').setView([0, 0], 1);
+/*
+		L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6IjZjNmRjNzk3ZmE2MTcwOTEwMGY0MzU3YjUzOWFmNWZhIn0.Y8bhBaUMqFiPrDRW9hieoQ', {
+			maxZoom: 18,
+			attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+				'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+				'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+			id: 'mapbox.streets'
+		}).addTo(map);
+*/			
+		
+		/*
+		var layerCities = L.geoJson(null, {
+			pointToLayer: function(feature, latlng) {
+				var marker = L.circleMarker(latlng, {
+					radius: 8,
+					fillColor: '#ff0000'
+				});
+				marker.addEventListener('click', function() {
+					console.log(feature.properties.NAME);
+				});
+				return marker;
+			}
+		}).addTo(map);
+		$.getJSON('layers/cities.geojson').then(function(data) {
+			layerCities.addData(data);
+			data.features.forEach(function(row) {
+				console.log(row.properties.NAME);
+			});
+		});
+		
+		var layerMap = L.geoJson().addTo(map);
+		$.getJSON('layers/map.geojson').then(function(data) {
+			layerMap.addData(data);
+			layerCities.bringToFront();
+			
+		});
+		
+		var layerBorders = L.geoJson().addTo(map);
+		$.getJSON('layers/borders.geojson').then(function(data) {
+			layerBorders.addData(data);
+			layerCities.bringToFront();
+		});
+		
+		layerMap.on('contextmenu',function(e){
+			alert('context');
+			(new L.Marker(e.latlng)).addTo(layerCities);
+		});
+		*/
+		/*
+		function onMapClick(e) {
+			popup
+				.setLatLng(e.latlng)
+				.setContent("You clicked the map at " + e.latlng.toString())
+				.openOn(map);
+		}
+
+		map.on('click', onMapClick);
+		*/
+		
+	</script>
+</body>
+</html>
